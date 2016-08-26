@@ -63,6 +63,8 @@ public class MainVerticle extends AbstractVerticle {
         router.delete(JOBS_PATH + "/:id").handler(this::delete);
         router.post(JOBS_PATH).handler(this::create);
         router.get(JOBS_PATH).handler(this::list);
+
+        //only for test purpose
         router.get(TEST_PATH).handler(this::test);
 
 
@@ -83,8 +85,17 @@ public class MainVerticle extends AbstractVerticle {
         this.scheduler = null;
     }
 
-    private JsonObject toJson(JobDetail jobDetail) {
-        return new JsonObject();
+    private JsonObject toJson(JobDetail jobDetail, Scheduler scheduler, Date next) throws Exception {
+        if (next == null) {
+            List<Trigger> triggers = (List<Trigger>) scheduler.getTriggersOfJob(jobDetail.getKey());
+            next = triggers.get(0).getNextFireTime();
+        }
+
+        return new JsonObject()
+                .put("id", jobDetail.getKey().getName())
+                .put("groupName", jobDetail.getKey().getGroup())
+                .put("next", next.toInstant());
+
     }
 
     private void test(RoutingContext routingContext) {
@@ -101,18 +112,45 @@ public class MainVerticle extends AbstractVerticle {
         String id = routingContext.request().getParam("id");
         HttpServerResponse response = routingContext.response();
         JobDetail jobDetail = null;
+        JobDataMap jobDataMap = null;
         if (id == null) {
             sendError(400, response);
         } else {
             try {
                 jobDetail = this.scheduler.getJobDetail(new JobKey(id));
+                jobDataMap = jobDetail.getJobDataMap();
             } catch (SchedulerException e) {
                 e.printStackTrace();
             }
             if (jobDetail == null) {
                 sendError(404, response);
             } else {
-                response.putHeader("content-type", "application/json").end(toJson(jobDetail).encodePrettily());
+                JsonObject jsonObject = null;
+                try {
+                    List<Trigger> triggers = (List<Trigger>) scheduler.getTriggersOfJob(jobDetail.getKey());
+                    Date nextFireTime = triggers.get(0).getNextFireTime();
+                    jsonObject = new JsonObject()
+                            .put("id", id)
+                            .put("groupName", jobDetail.getKey().getGroup())
+                            .put("next", nextFireTime.toInstant())
+                            .put("host", jobDataMap.get("host"))
+                            .put("port", jobDataMap.get("port"))
+                            .put("cron", jobDataMap.get("cron"))
+                            .put("path", jobDataMap.get("path"))
+                            .put("method", jobDataMap.get("method"))
+                            .put("username", jobDataMap.get("username"))
+                            .put("password", jobDataMap.get("password"))
+                            .put("jsonObject", jobDataMap.get("jsonObject"));
+
+                    System.out.println("[jobName] : " + id + " - " + nextFireTime);
+
+                } catch (Exception e) {
+                    sendError(500, response);
+                }
+                response
+                        .putHeader("content-type", "application/json")
+                        .setStatusCode(200)
+                        .end(jsonObject.encodePrettily());
             }
         }
     }
@@ -123,14 +161,21 @@ public class MainVerticle extends AbstractVerticle {
         if (id == null) {
             sendError(400, response);
         } else {
-
+            JobKey jobKey = new JobKey(id);
             try {
-                this.scheduler.deleteJob(new JobKey(id));
+                boolean exist = this.scheduler.checkExists(jobKey);
+                if (exist) {
+                    this.scheduler.deleteJob(jobKey);
+                    response.setStatusCode(204).end();
+                    return;
+                } else {
+                    sendError(404, response);
+                }
             } catch (SchedulerException e) {
                 e.printStackTrace();
                 sendError(404, response);
             }
-            response.putHeader("content-type", "application/json").end();
+
         }
     }
 
@@ -141,15 +186,21 @@ public class MainVerticle extends AbstractVerticle {
         if (id == null) {
             sendError(400, response);
         } else {
+            JobKey jobKey = new JobKey(id);
             try {
-                jobDetail = this.scheduler.getJobDetail(new JobKey(id));
-            } catch (SchedulerException e) {
+                boolean exist = this.scheduler.checkExists(jobKey);
+                if (exist) {
+                    this.scheduler.deleteJob(jobKey);
+                    create(routingContext);
+                    return;
+                } else {
+                    sendError(404, response);
+                    return;
+                }
+
+            } catch (Exception e) {
                 e.printStackTrace();
-            }
-            if (jobDetail == null) {
-                sendError(404, response);
-            } else {
-                response.putHeader("content-type", "application/json").end(toJson(jobDetail).encodePrettily());
+                sendError(500, response);
             }
         }
     }
@@ -194,24 +245,31 @@ public class MainVerticle extends AbstractVerticle {
             } catch (ParseException e) {
                 e.printStackTrace();
             }
+            JsonObject jsonObject = null;
             try {
                 date = this.scheduler.scheduleJob(jobDetail, trigger);
                 logger.info("scheduling: " + uuid + ", date: " + date);
-            } catch (SchedulerException e) {
+                if (date == null) {
+                    sendError(400, response);
+                    return;
+                } else {
+                    jsonObject = toJson(jobDetail, this.scheduler, date);
+                    response.setStatusCode(201)
+                            .putHeader("content-type", "application/json; charset=utf-8")
+                            .end(jsonObject.encodePrettily());
+                    return;
+                }
+            } catch (Exception e) {
                 e.printStackTrace();
+                sendError(500, response);
+                return;
             }
-            if (date == null) {
-                sendError(400, response);
-            } else {
-                vertxJobDetail.setUuid(uuid);
-                response.setStatusCode(201)
-                        .putHeader("content-type",
-                                "application/json; charset=utf-8").end(Json.encodePrettily(vertxJobDetail.toJson()));
-            }
+
         }
     }
 
     private void list(RoutingContext routingContext) {
+        HttpServerResponse response = routingContext.response();
         JsonArray arr = new JsonArray();
         try {
             for (String groupName : scheduler.getJobGroupNames()) {
@@ -220,7 +278,7 @@ public class MainVerticle extends AbstractVerticle {
                     //get job's trigger
                     List<Trigger> triggers = (List<Trigger>) scheduler.getTriggersOfJob(jobKey);
                     Date nextFireTime = triggers.get(0).getNextFireTime();
-                    JsonObject jsonObject = new JsonObject().put("id", id).put("groupName", groupName).put("next", nextFireTime);
+                    JsonObject jsonObject = new JsonObject().put("id", id).put("groupName", groupName).put("next", nextFireTime.toInstant());
                     System.out.println("[jobName] : " + id + " - " + nextFireTime);
                     arr.add(jsonObject);
                 }
@@ -228,8 +286,10 @@ public class MainVerticle extends AbstractVerticle {
             }
         } catch (SchedulerException e) {
             e.printStackTrace();
+            sendError(500, response);
+            return;
         }
-        routingContext.response().putHeader("content-type", "application/json").end(arr.encodePrettily());
+        response.putHeader("content-type", "application/json").end(arr.encodePrettily());
     }
 
     private void sendError(int statusCode, HttpServerResponse response) {

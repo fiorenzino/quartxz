@@ -15,38 +15,65 @@ public class FunctionalTests {
 
 
     @Test
+    public void test16_30_51Second() {
+        create("0 53 16 * * ?", "fiorenzo", "pizza");
+    }
+
+
+    @Test
     public void test30Second() {
-        VertxJobDetail vertxJobDetail = new VertxJobDetail();
-        vertxJobDetail.setHost("localhost")
-                .setPort(8080)
-                .setCron("0/30 * * * * ?")
-                .setMethod("GET")
-                .setSsl(false)
-                .setPath("/test");
-        JsonObject jsonObject = new JsonObject().put("name", "fiorenzo").put("surname", "pizza");
-        vertxJobDetail.setJsonObject(jsonObject);
-        String result = given().
-                contentType(ContentType.JSON).
-                body(Json.encode(vertxJobDetail)).
-                when().post(MainVerticle.JOBS_PATH).
-                then().assertThat()
-                .statusCode(201).
-                        extract()
-                .path("uuid");
-        System.out.println(result);
-        Assert.assertNotNull(result);
+        create("0/30 * * * * ?", "fiorenzo", "pizza");
     }
 
     @Test
     public void test1Second() {
+        create("0/1 * * * * ?", "fiorenzo", "pizza");
+    }
+
+
+    @Test
+    public void testDelete() {
+        String id = "";
+        given().
+                contentType(ContentType.JSON).
+                when().delete(MainVerticle.JOBS_PATH + "/" + id).
+                then().assertThat()
+                .statusCode(204);
+    }
+
+    @Test
+    public void testUpdate() {
+        String id = "";
         VertxJobDetail vertxJobDetail = new VertxJobDetail();
         vertxJobDetail.setHost("localhost")
                 .setPort(8080)
                 .setCron("0/1 * * * * ?")
                 .setMethod("GET")
                 .setSsl(false)
-                .setPath("/test");
-        JsonObject jsonObject = new JsonObject().put("name", "fiorenzo").put("surname", "pizza");
+                .setPath(MainVerticle.TEST_PATH);
+        JsonObject jsonObject = new JsonObject().put("name", "fiorenzo2").put("surname", "pizza2");
+        vertxJobDetail.setJsonObject(jsonObject);
+        String result = given().
+                contentType(ContentType.JSON).
+                body(Json.encode(vertxJobDetail)).
+                when().put(MainVerticle.JOBS_PATH + "/" + id).
+                then().assertThat()
+                .statusCode(201).
+                        extract()
+                .path("id");
+        System.out.println(result);
+        Assert.assertNotNull(result);
+    }
+
+    private void create(String when, String name, String surname) {
+        VertxJobDetail vertxJobDetail = new VertxJobDetail();
+        vertxJobDetail.setHost("localhost")
+                .setPort(8080)
+                .setCron(when)
+                .setMethod("GET")
+                .setSsl(false)
+                .setPath(MainVerticle.TEST_PATH);
+        JsonObject jsonObject = new JsonObject().put("name", name).put("surname", surname);
         vertxJobDetail.setJsonObject(jsonObject);
         String result = given().
                 contentType(ContentType.JSON).
@@ -55,7 +82,7 @@ public class FunctionalTests {
                 then().assertThat()
                 .statusCode(201).
                         extract()
-                .path("uuid");
+                .path("id");
         System.out.println(result);
         Assert.assertNotNull(result);
     }

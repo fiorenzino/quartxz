@@ -19,7 +19,7 @@ public class FunctionalTests {
         VertxJobDetail vertxJobDetail = new VertxJobDetail();
         vertxJobDetail.setHost("localhost")
                 .setPort(8080)
-                .setCron("0/1 * * * * ?")
+                .setCron("0/30 * * * * ?")
                 .setMethod("GET")
                 .setSsl(false)
                 .setPath("/test");

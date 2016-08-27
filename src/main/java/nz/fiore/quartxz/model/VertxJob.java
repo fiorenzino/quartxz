@@ -1,6 +1,5 @@
 package nz.fiore.quartxz.model;
 
-import com.sun.org.apache.xpath.internal.operations.Bool;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
@@ -65,7 +64,11 @@ public class VertxJob extends AbstractVerticle implements Job {
                 logger.info(jsonObject.toString());
                 logger.info(jsonObject.toString().length());
             }
-            boolean ssl = (Boolean) context.getMergedJobDataMap().get("password");
+            boolean ssl = false;
+            if (context.getMergedJobDataMap().containsKey("ssl")) {
+                ssl = (Boolean) context.getMergedJobDataMap().get("ssl");
+            }
+
             if (ssl) {
                 httpClient = vertx.createHttpClient(new HttpClientOptions().setSsl(true).setTrustAll(true));
             } else {

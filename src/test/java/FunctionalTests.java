@@ -34,7 +34,7 @@ public class FunctionalTests {
 
     @Test
     public void testDelete() {
-        String id = "faabf4ad-24ed-4b5b-b758-1e1847525e65";
+        String id = "9162d861-fbe9-4dfc-8e36-a6dc41fddea9";
         RestAssured.baseURI = "http://149.202.178.101/";
         RestAssured.port = 80;
         given().

@@ -5,7 +5,6 @@ import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.http.HttpServerResponse;
-import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
@@ -36,19 +35,25 @@ public class MainVerticle extends AbstractVerticle {
 
     private final static Logger logger = LoggerFactory.getLogger(MainVerticle.class);
     private boolean local = true;
+    private boolean test = true;
     private Scheduler scheduler;
+
+    String address = "localhost";
+    int port = 8080;
 
 
     @Override
     public void start() throws Exception {
-        System.out.println("START");
-//        httpClient = vertx.createHttpClient(new HttpClientOptions().setSsl(true).setTrustAll(true));
 
-        String address = System.getProperty("http.address");
-        String port = System.getProperty("http.port");
+        String addressProperty = System.getProperty("http.address");
+        if (addressProperty != null && !addressProperty.trim().isEmpty()) {
+            address = addressProperty;
+        }
+        String portProperty = System.getProperty("http.port");
+        if (portProperty != null && !portProperty.trim().isEmpty()) {
+            port = Integer.valueOf(portProperty);
+        }
         if (local) {
-            address = "0.0.0.0";
-            port = "8080";
             this.scheduler = new StdSchedulerFactory().getDefaultScheduler();
             this.scheduler.start();
         } else {
@@ -65,36 +70,45 @@ public class MainVerticle extends AbstractVerticle {
         router.get(JOBS_PATH).handler(this::list);
 
         //only for test purpose
-        router.get(TEST_PATH).handler(this::test);
+        if (test) {
+            router.get(TEST_PATH).handler(this::test);
+        }
 
-
-        logger.info("address: " + address + ", port: " + port);
+        logger.info("START -> address: " + address + ", port: " + port);
         HttpServerOptions options = new HttpServerOptions();
         options.setCompressionSupported(true);
         vertx.createHttpServer(options)
                 .requestHandler(router::accept)
-                .listen(
-                        Integer.valueOf(port), address);
+                .listen(port, address);
 
     }
 
     @Override
     public void stop() throws Exception {
-        System.out.println("STOP");
+        logger.info("STOP");
         this.scheduler.shutdown();
         this.scheduler = null;
     }
 
     private JsonObject toJson(JobDetail jobDetail, Scheduler scheduler, Date next) throws Exception {
+        final JsonArray jsonArray = new JsonArray();
         if (next == null) {
             List<Trigger> triggers = (List<Trigger>) scheduler.getTriggersOfJob(jobDetail.getKey());
-            next = triggers.get(0).getNextFireTime();
+            if (triggers != null && triggers.size() > 1) {
+                triggers.forEach(trigger -> {
+                    jsonArray.add(trigger.getNextFireTime().toInstant());
+                });
+                next = triggers.get(0).getNextFireTime();
+            }
         }
-
-        return new JsonObject()
+        JsonObject jsonObject = new JsonObject()
                 .put("id", jobDetail.getKey().getName())
                 .put("groupName", jobDetail.getKey().getGroup())
                 .put("next", next.toInstant());
+        if (jsonArray.size() > 0) {
+            jsonObject.put("dates", jsonArray);
+        }
+        return jsonObject;
 
     }
 
@@ -136,13 +150,14 @@ public class MainVerticle extends AbstractVerticle {
                             .put("host", jobDataMap.get("host"))
                             .put("port", jobDataMap.get("port"))
                             .put("cron", jobDataMap.get("cron"))
+                            .put("description", jobDataMap.get("description"))
                             .put("path", jobDataMap.get("path"))
                             .put("method", jobDataMap.get("method"))
                             .put("username", jobDataMap.get("username"))
                             .put("password", jobDataMap.get("password"))
                             .put("jsonObject", jobDataMap.get("jsonObject"));
 
-                    System.out.println("[jobName] : " + id + " - " + nextFireTime);
+                    logger.info("[jobName] : " + id + " - " + nextFireTime);
 
                 } catch (Exception e) {
                     sendError(500, response);
@@ -227,6 +242,7 @@ public class MainVerticle extends AbstractVerticle {
             jobDataMap.put("host", vertxJobDetail.getHost());
             jobDataMap.put("port", vertxJobDetail.getPort());
             jobDataMap.put("cron", vertxJobDetail.getCron());
+            jobDataMap.put("description", vertxJobDetail.getDescription());
             jobDataMap.put("path", vertxJobDetail.getPath());
             jobDataMap.put("method", vertxJobDetail.getMethod());
             jobDataMap.put("username", vertxJobDetail.getUsername());
@@ -234,8 +250,6 @@ public class MainVerticle extends AbstractVerticle {
             jobDataMap.put("jsonObject", vertxJobDetail.getJsonObject());
             jobDataMap.put("httpClient", httpClient);
             jobDetail.setJobDataMap(jobDataMap);
-
-            logger.info("scheduling: " + uuid + ", detail: " + vertxJobDetail.toString());
 
             CronTriggerImpl trigger = new CronTriggerImpl();
             trigger.setName(uuid);
@@ -248,7 +262,7 @@ public class MainVerticle extends AbstractVerticle {
             JsonObject jsonObject = null;
             try {
                 date = this.scheduler.scheduleJob(jobDetail, trigger);
-                logger.info("scheduling: " + uuid + ", date: " + date);
+                logger.info("scheduling: " + uuid + ", date: " + date + ", detail: " + vertxJobDetail.toString());
                 if (date == null) {
                     sendError(400, response);
                     return;
@@ -278,8 +292,11 @@ public class MainVerticle extends AbstractVerticle {
                     //get job's trigger
                     List<Trigger> triggers = (List<Trigger>) scheduler.getTriggersOfJob(jobKey);
                     Date nextFireTime = triggers.get(0).getNextFireTime();
-                    JsonObject jsonObject = new JsonObject().put("id", id).put("groupName", groupName).put("next", nextFireTime.toInstant());
-                    System.out.println("[jobName] : " + id + " - " + nextFireTime);
+                    JsonObject jsonObject = new JsonObject()
+                            .put("id", id)
+                            .put("groupName", groupName)
+                            .put("next", nextFireTime.toInstant());
+                    logger.info("[jobName] : " + id + " - " + nextFireTime);
                     arr.add(jsonObject);
                 }
 

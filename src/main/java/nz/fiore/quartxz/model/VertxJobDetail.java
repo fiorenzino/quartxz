@@ -18,6 +18,7 @@ public class VertxJobDetail implements Serializable {
     private String username;
     private String password;
     private String cron;
+    private String description;
     private JsonObject jsonObject;
 
     public VertxJobDetail() {
@@ -33,6 +34,7 @@ public class VertxJobDetail implements Serializable {
         this.username = json.getString("username");
         this.password = json.getString("password");
         this.cron = json.getString("cron");
+        this.description = json.getString("description");
         this.jsonObject = json.getJsonObject("jsonObject");
     }
 
@@ -47,6 +49,7 @@ public class VertxJobDetail implements Serializable {
                 .put("username", this.username)
                 .put("password", this.password)
                 .put("cron", this.cron)
+                .put("description", this.description)
                 .put("jsonObject", this.jsonObject);
         return jsonObject;
     }
@@ -63,6 +66,7 @@ public class VertxJobDetail implements Serializable {
                 ", username='" + username + '\'' +
                 ", password='" + password + '\'' +
                 ", cron='" + cron + '\'' +
+                ", description='" + description + '\'' +
                 ", jsonObject=" + jsonObject +
                 '}';
     }
@@ -145,6 +149,15 @@ public class VertxJobDetail implements Serializable {
 
     public VertxJobDetail setCron(String cron) {
         this.cron = cron;
+        return this;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public VertxJobDetail setDescription(String description) {
+        this.description = description;
         return this;
     }
 

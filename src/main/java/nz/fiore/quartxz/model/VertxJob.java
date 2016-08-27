@@ -62,27 +62,26 @@ public class VertxJob implements Job {
                 return;
             }
 
-
             HttpClientRequest req = null;
             switch (method.toUpperCase()) {
                 case "GET":
                     req = httpClient
                             .get(port, host, path, response -> {
-                                logger.info("Received response with status code " + response.statusCode());
+                                logger.info("GET  RESPONSE CODE: " + response.statusCode());
                                 response.bodyHandler(body -> System.out.println("Got data :" + body.toString()));
                             });
                     break;
                 case "PUT":
                     req = httpClient
                             .put(port, host, path, response -> {
-                                logger.info("Received response with status code " + response.statusCode());
+                                logger.info("PUT RESPONSE CODE: " + response.statusCode());
                                 response.bodyHandler(body -> System.out.println("Got data :" + body.toString()));
                             });
                     break;
                 case "DELETE":
                     req = httpClient
                             .delete(port, host, path, response -> {
-                                logger.info("Received response with status code " + response.statusCode());
+                                logger.info(" DELETE RESPONSE CODE: " + response.statusCode());
                                 response.bodyHandler(body -> System.out.println("Got data :" + body.toString()));
                             });
                     break;
@@ -95,18 +94,14 @@ public class VertxJob implements Job {
                             });
 
             }
-
-            httpClient
-                    .post(port, host, path, response -> {
-                        logger.info("Received response with status code " + response.statusCode());
-                        response.bodyHandler(body -> System.out.println("Got data :" + body.toString()));
-                    });
-            req.exceptionHandler(err -> {
-                logger.info("ERRORE: " + err.getMessage());
-                err.printStackTrace();
-            });
             req.putHeader("Content-Type", "application/json")
                     .putHeader("Content-Length", "" + jsonObject.toString().length());
+//
+            req.exceptionHandler(err -> {
+                logger.info("ERROR: " + err.getMessage());
+                err.printStackTrace();
+            });
+
             if (username != null) {
                 req.putHeader("Authorization", "Basic " + Base64.getEncoder().encodeToString((username + ":" + password).getBytes()));
             }

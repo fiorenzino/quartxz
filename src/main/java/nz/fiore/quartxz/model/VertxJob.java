@@ -20,6 +20,7 @@ public class VertxJob implements Job {
 
     private final static Logger logger = LoggerFactory.getLogger(VertxJob.class);
     HttpClient httpClient;
+    Vertx vertx;
 
     public VertxJob() {
     }
@@ -27,7 +28,7 @@ public class VertxJob implements Job {
     @Override
     public void execute(JobExecutionContext context) {
         try {
-            Vertx vertx = Vertx.vertx();
+            vertx = Vertx.vertx();
 
 
             logger.info("VertxJob start" + new Date() + ", " + context.getJobDetail().getKey().getName());
@@ -124,8 +125,14 @@ public class VertxJob implements Job {
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
-            if (httpClient != null)
-                httpClient.close();
+            if (this.httpClient != null) {
+                this.httpClient.close();
+                this.httpClient = null;
+            }
+            if (this.vertx != null) {
+                this.vertx.close();
+                this.vertx = null;
+            }
         }
     }
 }

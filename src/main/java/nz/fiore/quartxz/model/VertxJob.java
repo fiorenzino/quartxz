@@ -129,10 +129,10 @@ public class VertxJob implements Job {
                 this.httpClient.close();
                 this.httpClient = null;
             }
-            if (this.vertx != null) {
-                this.vertx.close();
-                this.vertx = null;
-            }
+//            if (this.vertx != null) {
+//                this.vertx.close();
+//                this.vertx = null;
+//            }
         }
     }
 }

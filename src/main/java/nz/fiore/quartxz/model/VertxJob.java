@@ -10,11 +10,8 @@ import io.vertx.core.logging.LoggerFactory;
 import org.quartz.Job;
 import org.quartz.JobExecutionContext;
 
-import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Date;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * Created by fiorenzo on 21/08/16.
@@ -78,9 +75,7 @@ public class VertxJob implements Job {
                 logger.info("httpClient is null:STOP JOB");
                 return;
             }
-//            List<CompletableFuture<String>> callList = new ArrayList<>();
-//            CompletableFuture<String> cf = new CompletableFuture<>();
-//            callList.add(cf);
+
             HttpClientRequest req = null;
             switch (method.toUpperCase()) {
                 case "GET":
@@ -88,8 +83,7 @@ public class VertxJob implements Job {
                             .get(port, host, path, response -> {
                                 logger.info("GET  RESPONSE CODE: " + response.statusCode());
                                 response.bodyHandler(body -> {
-                                    System.out.println("Got data :" + body.toString());
-//                                    cf.complete("ok");
+                                    logger.info("Got data :" + body.toString());
                                     exit();
                                 });
                             });
@@ -99,8 +93,7 @@ public class VertxJob implements Job {
                             .put(port, host, path, response -> {
                                 logger.info("PUT RESPONSE CODE: " + response.statusCode());
                                 response.bodyHandler(body -> {
-                                    System.out.println("Got data :" + body.toString());
-//                                    cf.complete("ok");
+                                    logger.info("Got data :" + body.toString());
                                     exit();
                                 });
                             });
@@ -110,8 +103,7 @@ public class VertxJob implements Job {
                             .delete(port, host, path, response -> {
                                 logger.info(" DELETE RESPONSE CODE: " + response.statusCode());
                                 response.bodyHandler(body -> {
-                                    System.out.println("Got data :" + body.toString());
-//                                    cf.complete("ok");
+                                    logger.info("Got data :" + body.toString());
                                     exit();
                                 });
                             });
@@ -122,8 +114,7 @@ public class VertxJob implements Job {
                             .post(port, host, path, response -> {
                                 logger.info("Received response with status code " + response.statusCode());
                                 response.bodyHandler(body -> {
-                                    System.out.println("Got data :" + body.toString());
-//                                    cf.complete("ok");
+                                    logger.info("Got data :" + body.toString());
                                     exit();
                                 });
                             });
@@ -142,11 +133,6 @@ public class VertxJob implements Job {
             }
             req.write(jsonObject.toString())
                     .end();
-//            CompletableFuture.allOf(callList.toArray(new CompletableFuture[callList.size()]))
-//                    .thenAccept(v -> {
-//                        System.out.println("FINITO");
-//
-//                    });
         } catch (Exception e) {
             e.printStackTrace();
         }

@@ -120,12 +120,20 @@ public class QuartzVerticle extends AbstractVerticle {
             } else {
                 JsonObject jsonObject = null;
                 try {
+                    final JsonArray jsonArray = new JsonArray();
+                    Date next = null;
+
                     List<Trigger> triggers = (List<Trigger>) scheduler.getTriggersOfJob(jobDetail.getKey());
-                    Date nextFireTime = triggers.get(0).getNextFireTime();
+                    if (triggers != null && triggers.size() > 1) {
+                        triggers.forEach(trigger -> {
+                            jsonArray.add(trigger.getNextFireTime().toInstant());
+                        });
+                        next = triggers.get(0).getNextFireTime();
+                    }
                     jsonObject = new JsonObject()
                             .put("id", id)
                             .put("groupName", jobDetail.getKey().getGroup())
-                            .put("next", nextFireTime.toInstant())
+                            .put("next", next)
                             .put("host", jobDataMap.get("host"))
                             .put("port", jobDataMap.get("port"))
                             .put("cron", jobDataMap.get("cron"))
@@ -135,7 +143,10 @@ public class QuartzVerticle extends AbstractVerticle {
                             .put("username", jobDataMap.get("username"))
                             .put("password", jobDataMap.get("password"))
                             .put("jsonObject", jobDataMap.get("jsonObject"));
-                    logger.info("[jobName] : " + id + " - " + nextFireTime);
+                    if (jsonArray.size() > 0) {
+                        jsonObject.put("dates", jsonArray);
+                    }
+                    logger.info("[jobName] : " + id + " - " + next);
 
                 } catch (Exception e) {
                     sendError(500, response);

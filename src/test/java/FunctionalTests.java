@@ -34,7 +34,9 @@ public class FunctionalTests {
 
     @Test
     public void testDelete() {
-        String id = "";
+        String id = "faabf4ad-24ed-4b5b-b758-1e1847525e65";
+        RestAssured.baseURI = "http://149.202.178.101/";
+        RestAssured.port = 80;
         given().
                 contentType(ContentType.JSON).
                 when().delete(MainVerticle.JOBS_PATH + "/" + id).
@@ -45,6 +47,8 @@ public class FunctionalTests {
     @Test
     public void testUpdate() {
         String id = "";
+        RestAssured.baseURI = "http://149.202.178.101/";
+        RestAssured.port = 80;
         VertxJobDetail vertxJobDetail = new VertxJobDetail();
         vertxJobDetail.setHost("localhost")
                 .setPort(8080)

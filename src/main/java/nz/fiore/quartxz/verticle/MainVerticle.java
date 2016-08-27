@@ -59,7 +59,7 @@ public class MainVerticle extends AbstractVerticle {
             this.scheduler.start();
         } else {
             logger.info("NO LOCAL DB");
-            this.scheduler = new StdSchedulerFactory("quartz-mysql.properties").getDefaultScheduler();
+            this.scheduler = new StdSchedulerFactory("quartz-mysql.properties").getScheduler();
             this.scheduler.start();
         }
         Router router = Router.router(vertx);

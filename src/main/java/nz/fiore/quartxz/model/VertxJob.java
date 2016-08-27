@@ -10,8 +10,11 @@ import io.vertx.core.logging.LoggerFactory;
 import org.quartz.Job;
 import org.quartz.JobExecutionContext;
 
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Date;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Created by fiorenzo on 21/08/16.
@@ -75,28 +78,40 @@ public class VertxJob implements Job {
                 logger.info("httpClient is null:STOP JOB");
                 return;
             }
-
+            List<CompletableFuture<String>> callList = new ArrayList<>();
+            CompletableFuture<String> cf = new CompletableFuture<>();
+            callList.add(cf);
             HttpClientRequest req = null;
             switch (method.toUpperCase()) {
                 case "GET":
                     req = httpClient
                             .get(port, host, path, response -> {
                                 logger.info("GET  RESPONSE CODE: " + response.statusCode());
-                                response.bodyHandler(body -> System.out.println("Got data :" + body.toString()));
+                                response.bodyHandler(body -> {
+                                    System.out.println("Got data :" + body.toString());
+                                    cf.complete("ok");
+                                });
                             });
                     break;
                 case "PUT":
                     req = httpClient
                             .put(port, host, path, response -> {
                                 logger.info("PUT RESPONSE CODE: " + response.statusCode());
-                                response.bodyHandler(body -> System.out.println("Got data :" + body.toString()));
+                                response.bodyHandler(body -> {
+                                    System.out.println("Got data :" + body.toString());
+                                    cf.complete("ok");
+                                });
                             });
                     break;
                 case "DELETE":
                     req = httpClient
                             .delete(port, host, path, response -> {
                                 logger.info(" DELETE RESPONSE CODE: " + response.statusCode());
-                                response.bodyHandler(body -> System.out.println("Got data :" + body.toString()));
+                                response.bodyHandler(body -> {
+                                    System.out.println("Got data :" + body.toString());
+                                    cf.complete("ok");
+
+                                });
                             });
                     break;
                 case "POST":
@@ -104,7 +119,10 @@ public class VertxJob implements Job {
                     req = httpClient
                             .post(port, host, path, response -> {
                                 logger.info("Received response with status code " + response.statusCode());
-                                response.bodyHandler(body -> System.out.println("Got data :" + body.toString()));
+                                response.bodyHandler(body -> {
+                                    System.out.println("Got data :" + body.toString());
+                                    cf.complete("ok");
+                                });
                             });
 
             }
@@ -121,17 +139,20 @@ public class VertxJob implements Job {
             }
             req.write(jsonObject.toString())
                     .end();
+            CompletableFuture.allOf(callList.toArray(new CompletableFuture[callList.size()]))
+                    .thenAccept(v -> {
+                        System.out.println("FINITO");
+                        if (this.httpClient != null) {
+                            this.httpClient.close();
+                            this.httpClient = null;
+                        }
+                        if (this.vertx != null) {
+                            this.vertx.close();
+                            this.vertx = null;
+                        }
+                    });
         } catch (Exception e) {
             e.printStackTrace();
-        } finally {
-            if (this.httpClient != null) {
-                this.httpClient.close();
-                this.httpClient = null;
-            }
-            if (this.vertx != null ) {
-//                this.vertx.close();
-                this.vertx = null;
-            }
         }
     }
 }

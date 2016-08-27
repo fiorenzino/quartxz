@@ -78,9 +78,9 @@ public class VertxJob implements Job {
                 logger.info("httpClient is null:STOP JOB");
                 return;
             }
-            List<CompletableFuture<String>> callList = new ArrayList<>();
-            CompletableFuture<String> cf = new CompletableFuture<>();
-            callList.add(cf);
+//            List<CompletableFuture<String>> callList = new ArrayList<>();
+//            CompletableFuture<String> cf = new CompletableFuture<>();
+//            callList.add(cf);
             HttpClientRequest req = null;
             switch (method.toUpperCase()) {
                 case "GET":
@@ -89,7 +89,8 @@ public class VertxJob implements Job {
                                 logger.info("GET  RESPONSE CODE: " + response.statusCode());
                                 response.bodyHandler(body -> {
                                     System.out.println("Got data :" + body.toString());
-                                    cf.complete("ok");
+//                                    cf.complete("ok");
+                                    exit();
                                 });
                             });
                     break;
@@ -99,7 +100,8 @@ public class VertxJob implements Job {
                                 logger.info("PUT RESPONSE CODE: " + response.statusCode());
                                 response.bodyHandler(body -> {
                                     System.out.println("Got data :" + body.toString());
-                                    cf.complete("ok");
+//                                    cf.complete("ok");
+                                    exit();
                                 });
                             });
                     break;
@@ -109,8 +111,8 @@ public class VertxJob implements Job {
                                 logger.info(" DELETE RESPONSE CODE: " + response.statusCode());
                                 response.bodyHandler(body -> {
                                     System.out.println("Got data :" + body.toString());
-                                    cf.complete("ok");
-
+//                                    cf.complete("ok");
+                                    exit();
                                 });
                             });
                     break;
@@ -121,7 +123,8 @@ public class VertxJob implements Job {
                                 logger.info("Received response with status code " + response.statusCode());
                                 response.bodyHandler(body -> {
                                     System.out.println("Got data :" + body.toString());
-                                    cf.complete("ok");
+//                                    cf.complete("ok");
+                                    exit();
                                 });
                             });
 
@@ -139,20 +142,24 @@ public class VertxJob implements Job {
             }
             req.write(jsonObject.toString())
                     .end();
-            CompletableFuture.allOf(callList.toArray(new CompletableFuture[callList.size()]))
-                    .thenAccept(v -> {
-                        System.out.println("FINITO");
-                        if (this.httpClient != null) {
-                            this.httpClient.close();
-                            this.httpClient = null;
-                        }
-                        if (this.vertx != null) {
-                            this.vertx.close();
-                            this.vertx = null;
-                        }
-                    });
+//            CompletableFuture.allOf(callList.toArray(new CompletableFuture[callList.size()]))
+//                    .thenAccept(v -> {
+//                        System.out.println("FINITO");
+//
+//                    });
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    private void exit() {
+        if (this.httpClient != null) {
+            this.httpClient.close();
+            this.httpClient = null;
+        }
+        if (this.vertx != null) {
+            this.vertx.close();
+            this.vertx = null;
         }
     }
 }

@@ -1,6 +1,6 @@
 package nz.fiore.quartxz.model;
 
-import io.vertx.core.AbstractVerticle;
+import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.HttpClientRequest;
@@ -16,7 +16,7 @@ import java.util.Date;
 /**
  * Created by fiorenzo on 21/08/16.
  */
-public class VertxJob extends AbstractVerticle implements Job {
+public class VertxJob implements Job {
 
     private final static Logger logger = LoggerFactory.getLogger(VertxJob.class);
 
@@ -24,13 +24,9 @@ public class VertxJob extends AbstractVerticle implements Job {
     }
 
     @Override
-    public void start() throws Exception {
-        logger.info("VertxJob start" + new Date());
-    }
-
-    @Override
     public void execute(JobExecutionContext context) {
         try {
+            Vertx vertx = Vertx.vertx();
             HttpClient httpClient;
 
             logger.info("VertxJob start" + new Date() + ", " + context.getJobDetail().getKey().getName());

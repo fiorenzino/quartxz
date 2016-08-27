@@ -34,7 +34,7 @@ public class MainVerticle extends AbstractVerticle {
     public static String TEST_PATH = "/test";
 
     private final static Logger logger = LoggerFactory.getLogger(MainVerticle.class);
-    private boolean local = true;
+    private boolean local = false;
     private boolean test = true;
     private Scheduler scheduler;
 

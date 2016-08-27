@@ -19,6 +19,7 @@ import java.util.Date;
 public class VertxJob implements Job {
 
     private final static Logger logger = LoggerFactory.getLogger(VertxJob.class);
+    HttpClient httpClient;
 
     public VertxJob() {
     }
@@ -27,7 +28,7 @@ public class VertxJob implements Job {
     public void execute(JobExecutionContext context) {
         try {
             Vertx vertx = Vertx.vertx();
-            HttpClient httpClient;
+
 
             logger.info("VertxJob start" + new Date() + ", " + context.getJobDetail().getKey().getName());
             Integer port = (Integer) context.getMergedJobDataMap().get("port");
@@ -123,8 +124,8 @@ public class VertxJob implements Job {
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
-//            if (httpClient != null)
-//                httpClient.close();
+            if (httpClient != null)
+                httpClient.close();
         }
     }
 }

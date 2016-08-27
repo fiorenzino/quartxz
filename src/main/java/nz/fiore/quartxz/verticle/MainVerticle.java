@@ -44,7 +44,7 @@ public class MainVerticle extends AbstractVerticle {
         router.route().handler(BodyHandler.create());
 
         QuartzVerticle quartzVerticle = new QuartzVerticle(router, vertx);
-        vertx.deployVerticle(quartzVerticle, new DeploymentOptions().setWorker(true));
+        vertx.deployVerticle(quartzVerticle, new DeploymentOptions().setWorker(true).setWorkerPoolSize(30));
 
         //only for test purpose
         if (test) {

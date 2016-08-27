@@ -1,8 +1,6 @@
 package nz.fiore.quartxz.verticle;
 
 import io.vertx.core.*;
-import io.vertx.core.http.HttpClient;
-import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonArray;
@@ -213,12 +211,6 @@ public class QuartzVerticle extends AbstractVerticle {
 
     private void create(RoutingContext routingContext) {
         VertxJobDetail vertxJobDetail = new VertxJobDetail(routingContext.getBodyAsJson());
-        HttpClient httpClient;
-        if (vertxJobDetail.isSsl()) {
-            httpClient = vertx.createHttpClient(new HttpClientOptions().setSsl(true).setTrustAll(true));
-        } else {
-            httpClient = vertx.createHttpClient();
-        }
         HttpServerResponse response = routingContext.response();
         String uuid = UUID.randomUUID().toString();
         if (vertxJobDetail == null) {
@@ -231,6 +223,7 @@ public class QuartzVerticle extends AbstractVerticle {
             jobDetail.setKey(jobKey);
             JobDataMap jobDataMap = new JobDataMap();
             jobDataMap.put("host", vertxJobDetail.getHost());
+            jobDataMap.put("ssl", vertxJobDetail.isSsl());
             jobDataMap.put("port", vertxJobDetail.getPort());
             jobDataMap.put("cron", vertxJobDetail.getCron());
             jobDataMap.put("description", vertxJobDetail.getDescription());
@@ -239,7 +232,6 @@ public class QuartzVerticle extends AbstractVerticle {
             jobDataMap.put("username", vertxJobDetail.getUsername());
             jobDataMap.put("password", vertxJobDetail.getPassword());
             jobDataMap.put("jsonObject", vertxJobDetail.getJsonObject());
-            jobDataMap.put("httpClient", httpClient);
             jobDetail.setJobDataMap(jobDataMap);
 
             CronTriggerImpl trigger = new CronTriggerImpl();

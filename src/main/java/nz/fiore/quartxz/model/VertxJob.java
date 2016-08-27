@@ -1,6 +1,9 @@
 package nz.fiore.quartxz.model;
 
+import com.sun.org.apache.xpath.internal.operations.Bool;
+import io.vertx.core.AbstractVerticle;
 import io.vertx.core.http.HttpClient;
+import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
@@ -14,19 +17,24 @@ import java.util.Date;
 /**
  * Created by fiorenzo on 21/08/16.
  */
-public class VertxJob implements Job {
+public class VertxJob extends AbstractVerticle implements Job {
 
     private final static Logger logger = LoggerFactory.getLogger(VertxJob.class);
-    HttpClient httpClient = null;
 
     public VertxJob() {
     }
 
     @Override
-    public void execute(JobExecutionContext context) {
-        logger.info("VertxJob execute" + new Date() + ", " + context.getJobDetail().getKey().getName());
-        try {
+    public void start() throws Exception {
+        logger.info("VertxJob start" + new Date());
+    }
 
+    @Override
+    public void execute(JobExecutionContext context) {
+        try {
+            HttpClient httpClient;
+
+            logger.info("VertxJob start" + new Date() + ", " + context.getJobDetail().getKey().getName());
             Integer port = (Integer) context.getMergedJobDataMap().get("port");
             String cron = (String) context.getMergedJobDataMap().get("cron");
             logger.info("cron: " + cron);
@@ -56,7 +64,12 @@ public class VertxJob implements Job {
                 logger.info(jsonObject.toString());
                 logger.info(jsonObject.toString().length());
             }
-            httpClient = (HttpClient) context.getMergedJobDataMap().get("httpClient");
+            boolean ssl = (Boolean) context.getMergedJobDataMap().get("password");
+            if (ssl) {
+                httpClient = vertx.createHttpClient(new HttpClientOptions().setSsl(true).setTrustAll(true));
+            } else {
+                httpClient = vertx.createHttpClient();
+            }
             if (httpClient == null) {
                 logger.info("httpClient is null:STOP JOB");
                 return;

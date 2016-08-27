@@ -10,6 +10,8 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
+import org.quartz.Scheduler;
+import org.quartz.impl.StdSchedulerFactory;
 
 /**
  * Created by fiorenzo on 21/08/16.
@@ -23,6 +25,7 @@ public class MainVerticle extends AbstractVerticle {
 
     public static boolean local = false;
     public static boolean test = true;
+    private Scheduler scheduler;
     String address = "localhost";
     int port = 8080;
 
@@ -39,11 +42,21 @@ public class MainVerticle extends AbstractVerticle {
             port = Integer.valueOf(portProperty);
         }
 
+        if (MainVerticle.local) {
+            logger.info("LOCAL DB");
+            this.scheduler = new StdSchedulerFactory().getDefaultScheduler();
+            this.scheduler.start();
+        } else {
+            logger.info("NO LOCAL DB");
+            this.scheduler = new StdSchedulerFactory("quartz-mysql.properties").getScheduler();
+            this.scheduler.start();
+        }
+
         Router router = Router.router(vertx);
         router.route().handler(BodyHandler.create());
         router.route().handler(BodyHandler.create());
 
-        QuartzVerticle quartzVerticle = new QuartzVerticle(router, vertx);
+        QuartzVerticle quartzVerticle = new QuartzVerticle(router, vertx, this.scheduler);
         vertx.deployVerticle(quartzVerticle, new DeploymentOptions().setWorker(true).setWorkerPoolSize(30));
 
         //only for test purpose
@@ -63,6 +76,8 @@ public class MainVerticle extends AbstractVerticle {
     @Override
     public void stop() throws Exception {
         logger.info("STOP");
+        this.scheduler.shutdown();
+        this.scheduler = null;
     }
 
 

@@ -33,9 +33,10 @@ public class QuartzVerticle extends AbstractVerticle {
 
     private final static Logger logger = LoggerFactory.getLogger(QuartzVerticle.class);
 
-    public QuartzVerticle(Router router, Vertx vertx) {
+    public QuartzVerticle(Router router, Vertx vertx, Scheduler scheduler) {
         this.router = router;
         this.vertx = vertx;
+        this.scheduler = scheduler;
     }
 
     @Override
@@ -46,15 +47,6 @@ public class QuartzVerticle extends AbstractVerticle {
     @Override
     public void start(Future<Void> startFuture) throws Exception {
         logger.info("QuartzVerticle start");
-        if (MainVerticle.local) {
-            logger.info("LOCAL DB");
-            this.scheduler = new StdSchedulerFactory().getDefaultScheduler();
-            this.scheduler.start();
-        } else {
-            logger.info("NO LOCAL DB");
-            this.scheduler = new StdSchedulerFactory("quartz-mysql.properties").getScheduler();
-            this.scheduler.start();
-        }
         startWebApp((start) -> {
             if (start.succeeded()) {
                 completeStartup(start, startFuture);
@@ -76,8 +68,6 @@ public class QuartzVerticle extends AbstractVerticle {
     @Override
     public void stop() throws Exception {
         logger.info("STOP");
-        this.scheduler.shutdown();
-        this.scheduler = null;
     }
 
     private JsonObject toJson(JobDetail jobDetail, Scheduler scheduler, Date next) throws Exception {

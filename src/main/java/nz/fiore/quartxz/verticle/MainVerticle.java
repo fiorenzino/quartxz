@@ -54,9 +54,11 @@ public class MainVerticle extends AbstractVerticle {
             port = Integer.valueOf(portProperty);
         }
         if (local) {
+            logger.info("LOCAL DB");
             this.scheduler = new StdSchedulerFactory().getDefaultScheduler();
             this.scheduler.start();
         } else {
+            logger.info("NO LOCAL DB");
             this.scheduler = new StdSchedulerFactory("quartz-mysql.properties").getDefaultScheduler();
             this.scheduler.start();
         }

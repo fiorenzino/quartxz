@@ -1,3 +1,4 @@
+import com.jayway.restassured.RestAssured;
 import com.jayway.restassured.http.ContentType;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
@@ -67,14 +68,16 @@ public class FunctionalTests {
 
     private void create(String when, String name, String surname) {
         VertxJobDetail vertxJobDetail = new VertxJobDetail();
-        vertxJobDetail.setHost("localhost")
-                .setPort(8080)
+        vertxJobDetail.setHost("149.202.178.101")
+                .setPort(80)
                 .setCron(when)
                 .setMethod("GET")
                 .setSsl(false)
                 .setPath(MainVerticle.TEST_PATH);
         JsonObject jsonObject = new JsonObject().put("name", name).put("surname", surname);
         vertxJobDetail.setJsonObject(jsonObject);
+        RestAssured.baseURI = "http://149.202.178.101/";
+        RestAssured.port = 80;
         String result = given().
                 contentType(ContentType.JSON).
                 body(Json.encode(vertxJobDetail)).

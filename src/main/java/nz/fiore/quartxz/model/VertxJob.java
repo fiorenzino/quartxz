@@ -57,7 +57,8 @@ public class VertxJob extends AbstractVerticle implements Job {
             if (username == null) {
                 logger.info("username is null");
             }
-            JsonObject jsonObject = (JsonObject) context.getMergedJobDataMap().get("jsonObject");
+            String jsonObjectString = (String) context.getMergedJobDataMap().get("jsonObject");
+            JsonObject jsonObject = new JsonObject(jsonObjectString);
             if (jsonObject == null) {
                 logger.info("jsonObject is null");
             } else {

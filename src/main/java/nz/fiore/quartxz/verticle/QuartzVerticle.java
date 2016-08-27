@@ -145,7 +145,6 @@ public class QuartzVerticle extends AbstractVerticle {
                             .put("username", jobDataMap.get("username"))
                             .put("password", jobDataMap.get("password"))
                             .put("jsonObject", jobDataMap.get("jsonObject"));
-
                     logger.info("[jobName] : " + id + " - " + nextFireTime);
 
                 } catch (Exception e) {
@@ -231,7 +230,7 @@ public class QuartzVerticle extends AbstractVerticle {
             jobDataMap.put("method", vertxJobDetail.getMethod());
             jobDataMap.put("username", vertxJobDetail.getUsername());
             jobDataMap.put("password", vertxJobDetail.getPassword());
-            jobDataMap.put("jsonObject", vertxJobDetail.getJsonObject());
+            jobDataMap.put("jsonObject", vertxJobDetail.getJsonObject().toString());
             jobDetail.setJobDataMap(jobDataMap);
 
             CronTriggerImpl trigger = new CronTriggerImpl();

@@ -26,17 +26,12 @@ public class MainVerticle extends AbstractVerticle {
     public static boolean local = false;
     public static boolean test = true;
     private Scheduler scheduler;
-    String address = "localhost";
     int port = 8080;
 
 
     @Override
     public void start() throws Exception {
 
-        String addressProperty = System.getProperty("http.address");
-        if (addressProperty != null && !addressProperty.trim().isEmpty()) {
-            address = addressProperty;
-        }
         String portProperty = System.getProperty("http.port");
         if (portProperty != null && !portProperty.trim().isEmpty()) {
             port = Integer.valueOf(portProperty);
@@ -54,7 +49,6 @@ public class MainVerticle extends AbstractVerticle {
 
         Router router = Router.router(vertx);
         router.route().handler(BodyHandler.create());
-        router.route().handler(BodyHandler.create());
 
         QuartzVerticle quartzVerticle = new QuartzVerticle(router, vertx, this.scheduler);
         vertx.deployVerticle(quartzVerticle, new DeploymentOptions().setWorker(true).setWorkerPoolSize(30));
@@ -64,12 +58,12 @@ public class MainVerticle extends AbstractVerticle {
             router.get(TEST_PATH).handler(this::test);
         }
 
-        logger.info("START -> address: " + address + ", port: " + port);
+        logger.info("START -> port: " + port);
         HttpServerOptions options = new HttpServerOptions();
         options.setCompressionSupported(true);
         vertx.createHttpServer(options)
                 .requestHandler(router::accept)
-                .listen(port, address);
+                .listen(port);
 
     }
 

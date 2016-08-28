@@ -108,55 +108,52 @@ public class QuartzVerticle extends AbstractVerticle {
         JobDataMap jobDataMap = null;
         if (id == null) {
             sendError(400, response);
-        } else {
-            try {
-                jobDetail = this.scheduler.getJobDetail(new JobKey(id));
-                jobDataMap = jobDetail.getJobDataMap();
-            } catch (SchedulerException e) {
-                e.printStackTrace();
-            }
-            if (jobDetail == null) {
-                sendError(404, response);
-            } else {
-                JsonObject jsonObject = null;
-                try {
-                    final JsonArray jsonArray = new JsonArray();
-                    Date next = null;
-
-                    List<Trigger> triggers = (List<Trigger>) scheduler.getTriggersOfJob(jobDetail.getKey());
-                    if (triggers != null && triggers.size() > 1) {
-                        triggers.forEach(trigger -> {
-                            jsonArray.add(trigger.getNextFireTime().toInstant());
-                        });
-                        next = triggers.get(0).getNextFireTime();
-                    }
-                    jsonObject = new JsonObject()
-                            .put("id", id)
-                            .put("groupName", jobDetail.getKey().getGroup())
-                            .put("next", next)
-                            .put("host", jobDataMap.get("host"))
-                            .put("port", jobDataMap.get("port"))
-                            .put("cron", jobDataMap.get("cron"))
-                            .put("description", jobDataMap.get("description"))
-                            .put("path", jobDataMap.get("path"))
-                            .put("method", jobDataMap.get("method"))
-                            .put("username", jobDataMap.get("username"))
-                            .put("password", jobDataMap.get("password"))
-                            .put("jsonObject", jobDataMap.get("jsonObject"));
-                    if (jsonArray.size() > 0) {
-                        jsonObject.put("dates", jsonArray);
-                    }
-                    logger.info("[jobName] : " + id + " - " + next);
-
-                } catch (Exception e) {
-                    sendError(500, response);
-                }
-                response
-                        .putHeader("content-type", "application/json")
-                        .setStatusCode(200)
-                        .end(jsonObject.encodePrettily());
-            }
+            return;
         }
+        try {
+            jobDetail = this.scheduler.getJobDetail(new JobKey(id));
+            jobDataMap = jobDetail.getJobDataMap();
+        } catch (SchedulerException e) {
+            e.printStackTrace();
+        }
+        if (jobDetail == null) {
+            sendError(404, response);
+            return;
+        }
+        JsonObject jsonObject = null;
+        try {
+            final JsonArray jsonArray = new JsonArray();
+            Date next = null;
+            List<Trigger> triggers = (List<Trigger>) scheduler.getTriggersOfJob(new JobKey(id));
+            if (triggers != null && triggers.size() > 1) {
+                triggers.forEach(trigger -> {
+                    jsonArray.add(trigger.getNextFireTime().toInstant());
+                });
+                next = triggers.get(0).getNextFireTime();
+            }
+            jsonObject = new JsonObject()
+                    .put("id", id)
+                    .put("groupName", jobDetail.getKey().getGroup())
+                    .put("next", next)
+                    .put("host", jobDataMap.get("host"))
+                    .put("port", jobDataMap.get("port"))
+                    .put("cron", jobDataMap.get("cron"))
+                    .put("description", jobDataMap.get("description"))
+                    .put("path", jobDataMap.get("path"))
+                    .put("method", jobDataMap.get("method"))
+                    .put("username", jobDataMap.get("username"))
+                    .put("password", jobDataMap.get("password"))
+                    .put("jsonObject", jobDataMap.get("jsonObject"));
+            if (jsonArray.size() > 0) {
+                jsonObject.put("dates", jsonArray);
+            }
+        } catch (Exception e) {
+            sendError(500, response);
+        }
+        response
+                .putHeader("content-type", "application/json")
+                .setStatusCode(200)
+                .end(jsonObject.encodePrettily());
     }
 
     private void delete(RoutingContext routingContext) {
@@ -164,22 +161,21 @@ public class QuartzVerticle extends AbstractVerticle {
         HttpServerResponse response = routingContext.response();
         if (id == null) {
             sendError(400, response);
-        } else {
-            JobKey jobKey = new JobKey(id);
-            try {
-                boolean exist = this.scheduler.checkExists(jobKey);
-                if (exist) {
-                    this.scheduler.deleteJob(jobKey);
-                    response.setStatusCode(204).end();
-                    return;
-                } else {
-                    sendError(404, response);
-                }
-            } catch (SchedulerException e) {
-                e.printStackTrace();
+            return;
+        }
+        JobKey jobKey = new JobKey(id);
+        try {
+            boolean exist = this.scheduler.checkExists(jobKey);
+            if (exist) {
+                this.scheduler.deleteJob(jobKey);
+                response.setStatusCode(204).end();
+                return;
+            } else {
                 sendError(404, response);
             }
-
+        } catch (SchedulerException e) {
+            e.printStackTrace();
+            sendError(404, response);
         }
     }
 
@@ -189,24 +185,24 @@ public class QuartzVerticle extends AbstractVerticle {
         JobDetail jobDetail = null;
         if (id == null) {
             sendError(400, response);
-        } else {
-            JobKey jobKey = new JobKey(id);
-            try {
-                boolean exist = this.scheduler.checkExists(jobKey);
-                if (exist) {
-                    this.scheduler.deleteJob(jobKey);
-                    create(routingContext);
-                    return;
-                } else {
-                    sendError(404, response);
-                    return;
-                }
-
-            } catch (Exception e) {
-                e.printStackTrace();
-                sendError(500, response);
-            }
+            return;
         }
+        JobKey jobKey = new JobKey(id);
+        try {
+            boolean exist = this.scheduler.checkExists(jobKey);
+            if (exist) {
+                this.scheduler.deleteJob(jobKey);
+                create(routingContext);
+                return;
+            } else {
+                sendError(404, response);
+                return;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            sendError(500, response);
+        }
+
     }
 
     private void create(RoutingContext routingContext) {
@@ -216,52 +212,48 @@ public class QuartzVerticle extends AbstractVerticle {
         if (vertxJobDetail == null) {
             logger.info("VERTX DETAIL IS NULL");
             sendError(400, response);
-        } else {
-            JobDetailImpl jobDetail = new JobDetailImpl();
-            jobDetail.setJobClass(VertxJob.class);
-            JobKey jobKey = new JobKey(uuid);
-            jobDetail.setKey(jobKey);
-            JobDataMap jobDataMap = new JobDataMap();
-            jobDataMap.put("host", vertxJobDetail.getHost());
-            jobDataMap.put("ssl", vertxJobDetail.isSsl());
-            jobDataMap.put("port", vertxJobDetail.getPort());
-            jobDataMap.put("cron", vertxJobDetail.getCron());
-            jobDataMap.put("description", vertxJobDetail.getDescription());
-            jobDataMap.put("path", vertxJobDetail.getPath());
-            jobDataMap.put("method", vertxJobDetail.getMethod());
-            jobDataMap.put("username", vertxJobDetail.getUsername());
-            jobDataMap.put("password", vertxJobDetail.getPassword());
-            jobDataMap.put("jsonObject", vertxJobDetail.getJsonObject().toString());
-            jobDetail.setJobDataMap(jobDataMap);
+            return;
+        }
+        JobDetailImpl jobDetail = new JobDetailImpl();
+        jobDetail.setJobClass(VertxJob.class);
+        JobKey jobKey = new JobKey(uuid);
+        jobDetail.setKey(jobKey);
+        JobDataMap jobDataMap = new JobDataMap();
+        jobDataMap.put("host", vertxJobDetail.getHost());
+        jobDataMap.put("ssl", vertxJobDetail.isSsl());
+        jobDataMap.put("port", vertxJobDetail.getPort());
+        jobDataMap.put("cron", vertxJobDetail.getCron());
+        jobDataMap.put("description", vertxJobDetail.getDescription());
+        jobDataMap.put("path", vertxJobDetail.getPath());
+        jobDataMap.put("method", vertxJobDetail.getMethod());
+        jobDataMap.put("username", vertxJobDetail.getUsername());
+        jobDataMap.put("password", vertxJobDetail.getPassword());
+        jobDataMap.put("jsonObject", vertxJobDetail.getJsonObject().toString());
+        jobDetail.setJobDataMap(jobDataMap);
 
-            CronTriggerImpl trigger = new CronTriggerImpl();
-            trigger.setName(uuid);
-            Date date = null;
-            try {
-                trigger.setCronExpression(vertxJobDetail.getCron());
-            } catch (ParseException e) {
-                e.printStackTrace();
-            }
-            JsonObject jsonObject = null;
-            try {
-                date = this.scheduler.scheduleJob(jobDetail, trigger);
-                logger.info("scheduling: " + uuid + ", date: " + date + ", detail: " + vertxJobDetail.toString());
-                if (date == null) {
-                    sendError(400, response);
-                    return;
-                } else {
-                    jsonObject = toJson(jobDetail, this.scheduler, date);
-                    response.setStatusCode(201)
-                            .putHeader("content-type", "application/json; charset=utf-8")
-                            .end(jsonObject.encodePrettily());
-                    return;
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-                sendError(500, response);
+        CronTriggerImpl trigger = new CronTriggerImpl();
+        trigger.setName(uuid);
+        Date date = null;
+        try {
+            trigger.setCronExpression(vertxJobDetail.getCron());
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        JsonObject jsonObject = null;
+        try {
+            date = this.scheduler.scheduleJob(jobDetail, trigger);
+            logger.info("scheduling: " + uuid + ", date: " + date + ", detail: " + vertxJobDetail.toString());
+            if (date == null) {
+                sendError(400, response);
                 return;
             }
-
+            jsonObject = toJson(jobDetail, this.scheduler, date);
+            response.setStatusCode(201)
+                    .putHeader("content-type", "application/json; charset=utf-8")
+                    .end(jsonObject.encodePrettily());
+        } catch (Exception e) {
+            e.printStackTrace();
+            sendError(500, response);
         }
     }
 
@@ -284,12 +276,11 @@ public class QuartzVerticle extends AbstractVerticle {
                 }
 
             }
+            response.putHeader("content-type", "application/json").end(arr.encodePrettily());
         } catch (SchedulerException e) {
             e.printStackTrace();
             sendError(500, response);
-            return;
         }
-        response.putHeader("content-type", "application/json").end(arr.encodePrettily());
     }
 
     private void sendError(int statusCode, HttpServerResponse response) {
